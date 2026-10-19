@@ -1,0 +1,27 @@
+{
+  "name": "credit-card-network-pricing-assistant",
+  "version": "1.0.0",
+  "description": "Enterprise AI Assistant for Credit Card Network Pricing, Interchange Analysis, Quality Assessment & Rule Extraction",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  },
+  "keywords": [
+    "credit-card",
+    "interchange",
+    "payment-network",
+    "pricing-analyst",
+    "merchant-discount-rate",
+    "business-rules-engine",
+    "ica-agent"
+  ],
+  "author": "IBM Bob / ICA Pricing Team",
+  "license": "MIT"
+}

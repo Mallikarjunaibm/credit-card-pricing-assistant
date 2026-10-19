@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Card Pricing Assistant</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">CP</div>
+      <h1>Card Pricing Assistant</h1>
+    </div>
+
+    <nav class="nav" aria-label="Main">
+      <button type="button" class="nav-btn active" data-view="review">Review a requirement</button>
+      <button type="button" class="nav-btn" data-view="calculator">Calculate fees</button>
+      <button type="button" class="nav-btn" data-view="chat">Ask a question</button>
+    </nav>
+
+    <div class="topbar-actions">
+      <span class="status" id="serviceStatus"><span class="dot"></span><span id="serviceStatusText">Connecting…</span></span>
+      <button class="btn btn-ghost" id="btnGlossary" type="button">Glossary</button>
+      <button class="btn btn-ghost" id="btnSettings" type="button">Settings</button>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- ===================== VIEW: REVIEW ===================== -->
+    <section id="view-review" class="view active">
+
+      <!-- Step A: input -->
+      <div id="reviewInput">
+        <div class="hero">
+          <h2>Check a pricing requirement in seconds</h2>
+          <p>Paste a requirement and the assistant will tell you what is missing, what conflicts, and which fees and rules it contains.</p>
+        </div>
+
+        <div class="card">
+          <h3 class="section-title"><span class="num">1</span> Pick an example, or paste your own</h3>
+          <div class="examples" id="exampleCards" aria-label="Examples">
+            <p class="muted small">Loading examples…</p>
+          </div>
+
+          <h3 class="section-title mt"><span class="num">2</span> Your requirement</h3>
+          <label class="field-label" for="docTitle">Name <span class="muted">(optional)</span></label>
+          <input type="text" id="docTitle" class="input" placeholder="e.g. Merchant pricing – Q3 release">
+
+          <div class="field-row">
+            <label class="field-label" for="specInput">Text</label>
+            <span class="muted small" id="charCount">0 characters</span>
+          </div>
+          <textarea id="specInput" class="input textarea" placeholder="Paste a requirement, user story or fee schedule here.&#10;&#10;For example: “Visa credit card-present transactions are charged 1.65% + $0.10. Monthly volume above $500,000 receives a 5 bps discount.”"></textarea>
+
+          <div class="actions">
+            <button id="btnAnalyzeAll" class="btn btn-primary btn-lg" type="button">3 &nbsp;Check my requirement</button>
+            <button id="btnClear" class="btn btn-secondary" type="button">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step B: results -->
+      <div id="reviewResults" hidden>
+        <div class="toolbar">
+          <button class="btn btn-secondary" id="btnEdit" type="button">← Edit requirement</button>
+          <div class="toolbar-right">
+            <button class="btn btn-secondary" id="btnExport" type="button">Export report</button>
+          </div>
+        </div>
+
+        <div class="verdict" id="verdictCard">
+          <div class="score-ring"><span id="ovHealthScore">–</span><small>out of 100</small></div>
+          <div>
+            <div class="muted small">Result for</div>
+            <h2 id="verdictTitle">–</h2>
+            <p class="verdict-status" id="ovHealthStatus">–</p>
+            <p class="verdict-text" id="verdictText"></p>
+          </div>
+        </div>
+
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">Requirement quality</div><div class="metric-value" id="ovQualityScore">–</div><div class="metric-sub" id="ovQualityRating">–</div></div>
+          <div class="metric"><div class="metric-label">Fit with card pricing models</div><div class="metric-value" id="ovDomainScore">–</div><div class="metric-sub" id="ovDomainStatus">–</div></div>
+          <div class="metric"><div class="metric-label">Fees and rates found</div><div class="metric-value" id="ovRuleCount">–</div><div class="metric-sub" id="ovRuleSummary">–</div></div>
+          <div class="metric"><div class="metric-label">Things to fix</div><div class="metric-value" id="ovIssueCount">–</div><div class="metric-sub" id="ovIssueSummary">–</div></div>
+        </div>
+
+        <p class="muted small hint-line">Open any section below for details. Sections with problems are already expanded.</p>
+
+        <details class="acc" id="accNext" open>
+          <summary><span class="acc-title">What to do next</span><span class="count" id="cntNext"></span></summary>
+          <div class="acc-body">
+            <ul class="rec-list" id="overviewRecommendations"></ul>
+            <div id="scoreBars" class="bars">
+              <div class="bar-row"><div class="bar-top"><span>Scenarios covered</span><span id="barCompletenessVal">–</span></div><div class="bar"><div id="barCompleteness"></div></div></div>
+              <div class="bar-row"><div class="bar-top"><span>Pricing rules agree with each other</span><span id="barConsistencyVal">–</span></div><div class="bar"><div id="barConsistency"></div></div></div>
+              <div class="bar-row"><div class="bar-top"><span>Matches how card pricing normally works</span><span id="barDomainVal">–</span></div><div class="bar"><div id="barDomain"></div></div></div>
+              <div class="bar-row"><div class="bar-top"><span>Regulations and card-network rules</span><span id="barRegulatoryVal">–</span></div><div class="bar"><div id="barRegulatory"></div></div></div>
+            </div>
+          </div>
+        </details>
+
+        <details class="acc" id="accQuality">
+          <summary><span class="acc-title">Missing scenarios and conflicts</span><span class="count" id="badgeQuality"></span></summary>
+          <div class="acc-body">
+            <h4>Scenarios the requirement does not cover</h4>
+            <div id="br1MissingACList" class="stack"></div>
+            <h4>Rules that conflict or look risky</h4>
+            <div id="br1InconsistenciesList" class="stack"></div>
+            <div class="card-head"><h4>Suggested test scenarios (Given / When / Then)</h4><button class="btn btn-secondary btn-sm" type="button" data-copy="gherkinBox">Copy</button></div>
+            <pre id="gherkinBox" class="code"></pre>
+          </div>
+        </details>
+
+        <details class="acc" id="accFees">
+          <summary><span class="acc-title">Fees and rates in your text</span><span class="count" id="badgeFees"></span></summary>
+          <div class="acc-body">
+            <h4>Fixed fees</h4>
+            <div class="table-wrap"><table class="table">
+              <thead><tr><th>Fee</th><th>Amount</th><th>Type</th><th>Found in text</th></tr></thead>
+              <tbody id="bodyFixedFees"></tbody>
+            </table></div>
+            <h4>Percentage rates</h4>
+            <div class="table-wrap"><table class="table">
+              <thead><tr><th>Fee</th><th>Rate</th><th>Plus fixed</th><th>Type</th></tr></thead>
+              <tbody id="bodyPercentageFees"></tbody>
+            </table></div>
+            <div class="grid-2">
+              <div><h4>Volume or tiered pricing</h4><div id="fr3TieredList" class="stack"></div></div>
+              <div><h4>Regional and cross-border</h4><div id="fr3RegionalList" class="stack"></div></div>
+            </div>
+          </div>
+        </details>
+
+        <details class="acc" id="accRules">
+          <summary><span class="acc-title">Business rules, written out</span><span class="count" id="badgeRules"></span></summary>
+          <div class="acc-body">
+            <h4>Who the rules apply to</h4>
+            <div id="fr4EligibilityList" class="stack"></div>
+            <h4>When the rules apply</h4>
+            <div id="fr4ConditionsList" class="stack"></div>
+            <h4>How fees are calculated</h4>
+            <div id="fr4FormulasList" class="stack"></div>
+          </div>
+        </details>
+
+        <details class="acc" id="accDomain">
+          <summary><span class="acc-title">Checklist against industry pricing models</span><span class="count" id="badgeDomain"></span></summary>
+          <div class="acc-body">
+            <p class="muted small">A ticked box means your text mentions that item. Unticked items may need to be added.</p>
+            <div id="br2ValidationCards" class="grid-2"></div>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ===================== VIEW: CALCULATOR ===================== -->
+    <section id="view-calculator" class="view">
+      <div class="hero">
+        <h2>Where does the money go on a card payment?</h2>
+        <p>Choose a common situation, or change the details yourself. The answer updates instantly.</p>
+      </div>
+
+      <div class="card">
+        <h3 class="section-title">Quick start</h3>
+        <div class="chips" id="presetChips">
+          <button type="button" class="chip" data-preset='{"amount":100,"net":"Visa","card":"Consumer Credit Rewards","channel":"E-Commerce CNP (3DS)","cross":false}'>Online sale</button>
+          <button type="button" class="chip" data-preset='{"amount":50,"net":"Mastercard","card":"Consumer Credit Rewards","channel":"POS Chip Contactless","cross":false}'>In-store purchase</button>
+          <button type="button" class="chip" data-preset='{"amount":500,"net":"Visa","card":"Premium Infinite / World Elite","channel":"E-Commerce CNP (3DS)","cross":true}'>Premium card from abroad</button>
+          <button type="button" class="chip" data-preset='{"amount":40,"net":"Visa","card":"Regulated Debit","channel":"POS Chip Contactless","cross":false}'>US debit card</button>
+        </div>
+
+        <div class="form-grid">
+          <div>
+            <label class="field-label" for="simAmount">Payment amount ($)</label>
+            <input type="number" id="simAmount" class="input" value="150" step="1" min="1">
+          </div>
+          <div>
+            <label class="field-label" for="simNetwork">Card network</label>
+            <select id="simNetwork" class="input">
+              <option value="Visa">Visa</option>
+              <option value="Mastercard">Mastercard</option>
+              <option value="Amex">American Express (OptBlue)</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label" for="simCardType">Type of card</label>
+            <select id="simCardType" class="input">
+              <option value="Consumer Credit Rewards">Consumer credit (standard / rewards)</option>
+              <option value="Premium Infinite / World Elite">Premium credit (Infinite / World Elite)</option>
+              <option value="Regulated Debit">US debit (regulated)</option>
+              <option value="Corporate Commercial">Corporate / purchasing card</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label" for="simChannel">How the card is used</label>
+            <select id="simChannel" class="input">
+              <option value="E-Commerce CNP (3DS)">Online, with 3-D Secure</option>
+              <option value="POS Chip Contactless">In store, chip or contactless</option>
+              <option value="Standard CNP / MOTO">Online or phone, without 3-D Secure</option>
+            </select>
+          </div>
+        </div>
+
+        <label class="check mt"><input type="checkbox" id="simCrossBorder"> The card was issued in another country (cross-border)</label>
+
+        <details class="adv">
+          <summary>Advanced: processor pricing</summary>
+          <div class="form-grid">
+            <div>
+              <label class="field-label" for="simModel">Pricing model</label>
+              <select id="simModel" class="input">
+                <option value="IC++">Interchange++ (fees passed through at cost)</option>
+                <option value="Blended Flat-Rate">Blended flat rate (2.90% + $0.30)</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label" for="simMarkupBps">Processor markup (basis points)</label>
+              <input type="number" id="simMarkupBps" class="input" value="20" step="5" min="0">
+              <span class="muted small">100 basis points = 1.00%</span>
+            </div>
+            <div>
+              <label class="field-label" for="simFixedFee">Processor fixed fee ($)</label>
+              <input type="number" id="simFixedFee" class="input" value="0.10" step="0.01" min="0">
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="answer" id="simAnswer">Calculating…</div>
+
+      <div class="metrics">
+        <div class="metric"><div class="metric-label">Total fees</div><div class="metric-value" id="simTotalFee">–</div><div class="metric-sub">paid by the merchant</div></div>
+        <div class="metric"><div class="metric-label">Effective rate</div><div class="metric-value" id="simEffectiveMDR">–</div><div class="metric-sub">fees ÷ payment</div></div>
+        <div class="metric"><div class="metric-label">Merchant receives</div><div class="metric-value" id="shareNetPayout">–</div><div class="metric-sub">after all fees</div></div>
+      </div>
+
+      <div class="card">
+        <h3 class="section-title">Who gets the fees</h3>
+        <div class="split-bar" aria-hidden="true"><span id="splitIssuer"></span><span id="splitScheme"></span><span id="splitAcquirer"></span></div>
+        <div class="legend">
+          <span><i class="sw sw-issuer"></i>Cardholder's bank (interchange) <strong id="shareIssuer">–</strong></span>
+          <span><i class="sw sw-scheme"></i>Card network <strong id="shareScheme">–</strong></span>
+          <span><i class="sw sw-acq"></i>Payment processor <strong id="shareAcquirer">–</strong></span>
+        </div>
+      </div>
+
+      <details class="acc">
+        <summary><span class="acc-title">Step-by-step breakdown</span></summary>
+        <div class="acc-body">
+          <div class="table-wrap"><table class="table">
+            <thead><tr><th>Step</th><th>How it is calculated</th><th class="num">Amount</th></tr></thead>
+            <tbody id="simWaterfallBody"></tbody>
+          </table></div>
+        </div>
+      </details>
+    </section>
+
+    <!-- ===================== VIEW: CHAT ===================== -->
+    <section id="view-chat" class="view">
+      <div class="hero">
+        <h2>Ask a question</h2>
+        <p>Ask about interchange, card network fees, test scenarios or how a fee is calculated. If you have entered a requirement, the assistant uses it.</p>
+      </div>
+      <div class="card chat">
+        <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
+        <div class="chips" id="chatChips">
+          <button type="button" class="chip" data-prompt="Explain how interchange works in an Interchange++ model">How does Interchange++ work?</button>
+          <button type="button" class="chip" data-prompt="Validate this specification for Durbin Amendment US Debit compliance">Check US debit rules</button>
+          <button type="button" class="chip" data-prompt="Identify all fixed and percentage fees in the current spec">List fees in my requirement</button>
+          <button type="button" class="chip" data-prompt="Rewrite acceptance criteria into Gherkin Given-When-Then">Write test scenarios</button>
+        </div>
+        <form id="chatForm" class="chat-form">
+          <input type="text" id="chatInput" class="input" placeholder="Type your question…" autocomplete="off" aria-label="Your question">
+          <button type="submit" class="btn btn-primary" id="chatSend">Send</button>
+          <button type="button" class="btn btn-secondary" id="btnResetChat">New chat</button>
+        </form>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Export dialog -->
+  <dialog id="exportModal" class="dialog">
+    <div class="dialog-head">
+      <h2>Export report</h2>
+      <button type="button" class="icon-btn" data-close="exportModal" aria-label="Close">×</button>
+    </div>
+    <div class="dialog-body">
+      <p class="muted small">Choose a format, then copy or download it.</p>
+      <div class="seg" role="radiogroup" aria-label="Export format">
+        <button type="button" class="seg-btn active" data-format="markdown">Document (Markdown)</button>
+        <button type="button" class="seg-btn" data-format="jira">Jira</button>
+        <button type="button" class="seg-btn" data-format="json">Data (JSON)</button>
+      </div>
+      <pre id="exportPreview" class="code code-tall">Loading…</pre>
+    </div>
+    <div class="dialog-foot">
+      <button type="button" class="btn btn-secondary" data-close="exportModal">Close</button>
+      <button type="button" class="btn btn-secondary" id="btnCopyExport">Copy</button>
+      <button type="button" class="btn btn-primary" id="btnDownloadExport">Download</button>
+    </div>
+  </dialog>
+
+  <!-- Glossary dialog -->
+  <dialog id="glossaryModal" class="dialog">
+    <div class="dialog-head">
+      <h2>Glossary</h2>
+      <button type="button" class="icon-btn" data-close="glossaryModal" aria-label="Close">×</button>
+    </div>
+    <div class="dialog-body">
+      <dl class="glossary">
+        <dt>Interchange</dt><dd>The fee the merchant's side pays the cardholder's bank (the issuer) on each card payment.</dd>
+        <dt>Card network fees (assessments)</dt><dd>Fees charged by Visa, Mastercard or Amex for using their network.</dd>
+        <dt>Processor markup</dt><dd>The payment processor's own margin on top of the other fees.</dd>
+        <dt>Interchange++ (IC++)</dt><dd>A pricing model where interchange and network fees are passed to the merchant at cost, plus a visible processor markup.</dd>
+        <dt>Blended flat rate</dt><dd>One simple rate for every payment, for example 2.90% + $0.30.</dd>
+        <dt>Tiered pricing (qualified / non-qualified)</dt><dd>Payments are grouped into price tiers, with higher rates for riskier payment types.</dd>
+        <dt>MDR (merchant discount rate)</dt><dd>The total percentage of a sale that the merchant pays in fees.</dd>
+        <dt>Basis point (bps)</dt><dd>One hundredth of a percent. 100 bps = 1.00%.</dd>
+        <dt>Cross-border</dt><dd>The card was issued in a different country from the merchant. This usually costs more.</dd>
+        <dt>3-D Secure (3DS)</dt><dd>An extra online check of the cardholder's identity that can reduce fees and fraud.</dd>
+        <dt>Durbin Amendment</dt><dd>A US rule that caps interchange on debit cards from large banks.</dd>
+        <dt>Acceptance criteria</dt><dd>The conditions a feature must meet to be considered finished and correct.</dd>
+        <dt>Given / When / Then</dt><dd>A plain format for writing test scenarios: the starting point, the action, and the expected result.</dd>
+      </dl>
+    </div>
+    <div class="dialog-foot"><button type="button" class="btn btn-primary" data-close="glossaryModal">Close</button></div>
+  </dialog>
+
+  <!-- Settings dialog -->
+  <dialog id="settingsModal" class="dialog">
+    <form id="settingsForm" method="dialog">
+      <div class="dialog-head">
+        <h2>Settings</h2>
+        <button type="button" class="icon-btn" data-close="settingsModal" aria-label="Close">×</button>
+      </div>
+      <div class="dialog-body">
+        <p class="hint">Connection to IBM Consulting Advantage (ICA) for the “Ask a question” assistant. If the connection is unavailable, answers come from built-in pricing knowledge. You normally do not need to change anything here.</p>
+        <label class="field-label" for="cfgApiKey">API key</label>
+        <input type="password" id="cfgApiKey" class="input mono" autocomplete="off" placeholder="Leave blank to keep the current key">
+        <span class="muted small" id="cfgKeyHint"></span>
+
+        <label class="field-label" for="cfgEndpoint">Endpoint URL</label>
+        <input type="text" id="cfgEndpoint" class="input mono">
+
+        <div class="form-grid two">
+          <div><label class="field-label" for="cfgAssistantId">Assistant ID</label><input type="text" id="cfgAssistantId" class="input mono"></div>
+          <div><label class="field-label" for="cfgProjectId">Project ID</label><input type="text" id="cfgProjectId" class="input mono"></div>
+        </div>
+        <label class="field-label" for="cfgAgentId">Agent ID</label>
+        <input type="text" id="cfgAgentId" class="input mono">
+      </div>
+      <div class="dialog-foot">
+        <button type="button" class="btn btn-secondary" data-close="settingsModal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save settings</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
